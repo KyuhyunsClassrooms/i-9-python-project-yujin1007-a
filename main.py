@@ -1,6 +1,6 @@
 # AI 활용 자유 주제 파이썬 미니 프로젝트
-# 이름 또는 학번: 
-# 프로젝트 주제: 
+# 이름 또는 학번: 21018 이유진
+# 프로젝트 주제: 온도조건과 반응시간에 따른 화학 반응 속도 및 수득률 계산기
 
 # ============================================================
 # 사용 안내
@@ -30,70 +30,130 @@
 # 3번 열: 활동 유형
 # ------------------------------------------------------------
 
-activities = [
-    ["산책하기", 30, "피곤", "운동"],
-    ["짧은 낮잠", 20, "피곤", "휴식"],
-    ["좋아하는 음악 듣기", 10, "우울", "휴식"],
-    ["문제집 3쪽 풀기", 40, "차분", "공부"],
-    ["방 정리하기", 25, "답답", "생활"],
-    ["친구에게 연락하기", 15, "우울", "소통"],
-]
+# ------------------------------------------------------------
+# 1. 데이터 준비: 2차원 리스트 (초기에는 비어있음)
+# ------------------------------------------------------------
+# 0번 열: 반응 진행 시간 (초)
+# 1번 열: 반응물 농도 (mol/L)
+# 2번 열: 생성물 농도 (mol/L)
+# 3번 열: 공정 상태 ("정상", "주의" 등)
+# ------------------------------------------------------------
+
+# 프로그램 내에서 실시간으로 채워질 빈 리스트입니다.
+reaction_records = []
 
 
 # ------------------------------------------------------------
 # 2. 함수 정의
 # ------------------------------------------------------------
 
+# ------------------------------------------------------------
+# 2. 함수 정의
+# ------------------------------------------------------------
+
 def show_intro():
-    """프로그램 제목과 안내를 출력한다."""
-    print("=" * 40)
-    print("AI 활용 자유 주제 파이썬 미니 프로젝트")
-    print("예시: 기분과 시간에 따른 활동 추천기")
-    print("=" * 40)
+    """프로그램 제목과 화학공학적 안내를 출력한다."""
+    print("=" * 45)
+    print("  화학 반응 속도 및 공정 수득률 계산 시뮬레이터  ")
+    print("=" * 45)
 
 
-def get_user_input():
-    """사용자에게 기분과 남은 시간을 입력받는다."""
-    mood = input("현재 기분을 입력하세요. 예: 피곤, 우울, 차분, 답답: ")
-    minutes = int(input("사용 가능한 시간을 분 단위로 입력하세요: "))
-    return mood, minutes
-
-
-def find_recommendations(data, mood, minutes):
-    """2차원 리스트를 반복하며 조건에 맞는 활동을 찾는다."""
-    results = []
-
-    for row in data:
-        name = row[0]
-        required_minutes = row[1]
-        recommended_mood = row[2]
-        activity_type = row[3]
-
-        # 조건문: 사용자의 기분과 시간이 활동 조건에 맞는지 판단한다.
-        if recommended_mood == mood and required_minutes <= minutes:
-            results.append([name, required_minutes, activity_type])
-
-    return results
-
-
-def print_result(results):
-    """추천 결과를 출력한다."""
-    print("\n[추천 결과]")
-
-    if len(results) == 0:
-        print("조건에 맞는 활동이 없습니다.")
-        print("시간을 늘리거나 다른 기분을 입력해 보세요.")
+def get_reaction_rate(choice):
+    """사용자가 선택한 온도 조건에 따라 속도 상수를 반환한다. (조건문 활용)"""
+    # 1번은 저온(느림), 2번은 고온(빠름)
+    if choice == 1:
+        rate = 0.05
+    elif choice == 2:
+        rate = 0.15
     else:
-        for item in results:
-            print(f"- {item[0]} / {item[1]}분 / 유형: {item[2]}")
+        rate = 0.0  # 잘못된 입력 예외 처리용
+    return rate
+
+
+def run_simulation(initial_conc, total_time, rate):
+    """반복문을 돌며 시간별 농도를 계산하고 2차원 리스트를 만들어 반환한다."""
+    records = []
+    current_time = 0
+    current_conc = initial_conc
+    product_conc = 0.0
+
+    # 0초일 때의 초기 상태를 먼저 리스트에 추가합니다.
+    records.append([current_time, current_conc, product_conc, "정상"])
+
+    # 반복문 조건: 현재 시간이 총 반응 시간 이하일 때 동안 반복 수행
+    # 시간은 10초 단위로 증가한다고 가정해봅시다.
+    while current_time < total_time:
+        current_time += 10
+        
+        # [과학적 규칙 계산] 
+        # 감소량 = 현재 농도 * 반응 속도 상수
+        decreased_amount = current_conc * rate
+        
+        # 새로운 반응물 농도 = 기존 농도 - 감소량
+        current_conc = current_conc - decreased_amount
+        # 새로운 생성물 농도 = 초기 농도 - 현재 남은 반응물 농도
+        product_conc = initial_conc - current_conc
+
+        # [조건문 활용] 만약 남은 반응물 농도가 0.2 미만으로 떨어지면 "주의" 상태로 기록
+        if current_conc < 0.2:
+            status = "주의"
+        else:
+            status = "정상"
+
+        # 계산된 값들을 2차원 리스트에 한 행(row)으로 추가하기
+        records.append([current_time, round(current_conc, 3), round(product_conc, 3), status])
+
+    return records
+
+
+def print_result_report(records, initial_conc):
+    """2차원 리스트를 반복하며 시뮬레이션 결과를 표로 출력하고 수득률을 평가한다."""
+    print("\n" + "-"*45)
+    print("⏰시간(초) | 🧪반응물 농도 | 💎생성물 농도 | ⚠️상태")
+    print("-"*45)
+
+    # 1. 반복문을 사용하여 2차원 리스트의 모든 항목을 하나씩 출력하세요.
+    for row in records:
+        print(f"   {row[0]}초    |    {row[1]} mol/L   |    {row[2]} mol/L   |  {row[3]}")
+    print("-"*45)
+
+    # 2. 수득률 계산 및 공정 평가 (마지막 행의 생성물 농도 활용)
+    # 2차원 리스트의 가장 마지막 행은 records[-1]로 가져올 수 있습니다.
+    final_product = records[-1][2] 
+    
+    # 수득률(%) = (최종 생성물 농도 / 초기 농도) * 100
+    yield_rate = (final_product / initial_conc) * 100
+    print(f"▶️ 최종 수득률: {yield_rate:.2f}%")
+
+    # [조건문] 수득률이 80% 이상이면 우수, 아니면 보완 필요 출력
+    if yield_rate >= 80:
+        print("▶️ 공정 평가 결과: [우수] 효율적인 공정 조건입니다.")
+    else:
+        print("▶️ 공정 평가 결과: [보완 필요] 온도를 높이거나 시간을 늘리세요.")
 
 
 def main():
     show_intro()
-    mood, minutes = get_user_input()
-    results = find_recommendations(activities, mood, minutes)
-    print_result(results)
+    
+    # 사용자 입력 받기
+    initial = float(input("1. 반응물의 초기 농도를 입력하세요 (추천: 1.0 ~ 5.0): "))
+    time = int(input("2. 총 반응 시간을 입력하세요 (10 단위 정수, 추천: 30 ~ 60): "))
+    print("3. 온도 조건을 선택하세요.")
+    print("   [1] 저온 공정 (반응 속도 느림)")
+    print("   [2] 고온 공정 (반응 속도 빠름)")
+    temp_choice = int(input("선택 (1 또는 2): "))
+    
+    # 함수 호출 흐름 연결하기
+    rate = get_reaction_rate(temp_choice)
+    
+    # 예외 처리: 속도가 0이면 잘못 선택한 것
+    if rate == 0.0:
+        print("❌ 잘못된 온도 선택입니다. 프로그램을 종료합니다.")
+        return
 
+    # 시뮬레이션 실행 및 결과 출력
+    records = run_simulation(initial, time, rate)
+    print_result_report(records, initial)
 
 # ------------------------------------------------------------
 # 3. 프로그램 실행
